@@ -1,0 +1,112 @@
+name: Deploy Website with Docker
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Django image
+        run: |
+          docker buildx create --use
+          docker buildx build --push \
+            --tag ${{ secrets.DOCKER_USERNAME }}/imagesitewebfontana-django:latest \
+            --platform linux/amd64 \
+            -f sitetheo/Dockerfile ./sitetheo
+
+      - name: Build and push Nginx image
+        run: |
+          docker buildx build --push \
+            --tag ${{ secrets.DOCKER_USERNAME }}/imagesitewebfontana-nginx:latest \
+            --platform linux/amd64 \
+            -f nginx/Dockerfile ./nginx
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -e
+
+            echo "🚀 Logging into Docker Hub..."
+            
+            # Récupération ou mise à jour du dépôt sur le VPS
+            cd /home/${{ secrets.VPS_USER }} || exit 1
+            if [ -d "sitew_TF" ]; then
+              cd sitew_TF && git pull
+            else
+              git clone https://github.com/Theo48-2A/sitew_TF.git
+              cd sitew_TF
+            fi
+
+            docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+
+            echo "🔄 Creating .env file for Docker Compose..."
+            cat <<EOF > .env
+            DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            ENVIRONMENT=${{ secrets.ENVIRONMENT }}
+            DJANGO_SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
+            ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
+            EOF
+
+            echo "🔄 Pulling latest Docker images..."
+            docker pull ${{ secrets.DOCKER_USERNAME }}/imagesitewebfontana-django:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/imagesitewebfontana-nginx:latest
+
+            echo "🛑 Arrêt et suppression des anciens conteneurs..."
+            docker-compose down -v || true
+            
+            echo "🧹 Nettoyage complet de Docker..."
+            docker system prune -a --volumes -f || true
+            
+            echo "✅ Nettoyage terminé."
+
+            echo "🔧 Installing Certbot if not installed..."
+            if ! command -v certbot &> /dev/null; then
+              sudo apt update && sudo apt install -y certbot
+            fi
+
+            echo "🔑 Checking SSL certificate..."
+            if [ ! -d "/etc/letsencrypt/live/theo-fontana.com" ]; then
+              echo "🔐 SSL certificate missing, generating one..."
+              sudo certbot certonly --standalone --noninteractive --agree-tos --email contact@theo-fontana.com -d theo-fontana.com -d www.theo-fontana.com
+            else
+              echo "🔄 Renewing SSL certificate if needed..."
+              sudo certbot renew --quiet || true
+            fi
+
+            echo "✅ Running new containers..."
+            docker-compose --env-file .env up -d --force-recreate
+        
+            sleep 5
+            if ! docker ps | grep -q "django_cv"; then
+                echo "❌ ERROR: Django container is not running!"
+                exit 1
+            fi
+            if ! docker ps | grep -q "nginx_proxy"; then
+                echo "❌ ERROR: Nginx container is not running!"
+                exit 1
+            fi
+            
+            docker exec -i django_cv python manage.py collectstatic --noinput
+
+            echo "🎉 ✅ Deployment completed successfully!!!"

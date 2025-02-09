@@ -1,0 +1,33 @@
+services:
+  django:
+    image: ${DOCKER_USERNAME}/imagesitewebfontana-django:latest
+    container_name: django_cv
+    restart: always
+    environment:
+      - ENVIRONMENT=${ENVIRONMENT}
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+    networks:
+      - internal_network  # Communication interne uniquement
+    volumes:
+      - ./sitetheo/staticfiles:/app/staticfiles
+
+  nginx:
+    image: ${DOCKER_USERNAME}/imagesitewebfontana-nginx:latest
+    container_name: nginx_proxy
+    restart: always
+    depends_on:
+      - django  # Attends que Django démarre avant de lancer Nginx
+    networks:
+      - internal_network  # Communication interne uniquement
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./sitetheo/staticfiles:/app/staticfiles
+      - /etc/letsencrypt:/etc/letsencrypt
+      - /var/www/html:/var/www/html
+
+networks:
+  internal_network:
+    driver: bridge
