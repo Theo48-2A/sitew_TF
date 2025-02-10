@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon CV</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            let currentPath = window.location.pathname.replace('/', '') || 'home';
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    let section = this.getAttribute('data-section');
+                    window.history.pushState({}, '', '/' + section);
+                    document.querySelectorAll('.content-section').forEach(el => el.classList.add('hidden'));
+                    document.getElementById(section).classList.remove('hidden');
+                });
+            });
+            if (document.getElementById(currentPath)) {
+                document.querySelectorAll('.content-section').forEach(el => el.classList.add('hidden'));
+                document.getElementById(currentPath).classList.remove('hidden');
+            }
+        });
+    </script>
+    <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}">
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+
+    <!-- Header avec photo, nom et titre, centré globalement -->
+    <header class="w-full bg-gray-900 text-white py-6">
+        <div class="max-w-3xl mx-auto flex items-center justify-center px-4 space-x-6">
+            <!-- Photo de profil -->
+            <div class="w-36 h-36 border-4 border-white rounded-full overflow-hidden">
+                <img src="{% static 'images/profil.jpeg' %}" alt="Photo de profil" class="w-full h-full object-cover">
+            </div>
+            <!-- Nom et titre, alignés à gauche (dans le bloc) -->
+            <div class="text-left">
+                <h1 class="text-2xl font-bold flex items-center">
+                    Théo Fontana
+                    <!--<img src="{% static 'images/favicon.ico' %}" alt="Icon" class="w-10 h-10 mr-2 inline-block">-->
+                </h1>
+                <p class="text-gray-300">Développeur Logiciel | Passionné de Technologie</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Barre de navigation -->
+    <nav class="mt-6 bg-white shadow-md py-3 flex justify-center space-x-6 max-w-lg mx-auto">
+        <a href="/formation"
+           class="nav-button px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold"
+           data-section="formation">🎓 Formation</a>
+        <a href="/experience"
+           class="nav-button px-4 py-2 bg-green-500 text-white rounded-lg font-semibold"
+           data-section="experience">💼 Expérience</a>
+        <a href="/competences"
+           class="nav-button px-4 py-2 bg-red-500 text-white rounded-lg font-semibold"
+           data-section="competences">🚀 Compétences</a>
+    </nav>
+
+    <!-- Contenu principal -->
+    <main class="mt-12 flex flex-col items-center">
+        <!-- Section Accueil -->
+        <div id="home" class="content-section bg-white shadow-md p-6 rounded-lg max-w-lg text-center">
+            <h1 class="text-3xl font-bold text-gray-900">Bienvenue sur mon CV interactif</h1>
+            <p class="mt-4 text-gray-700">Une présentation moderne et engageante de mon parcours.</p>
+        </div>
+
+        <!-- Section Formation -->
+        <div id="formation" class="content-section hidden bg-white shadow-md p-6 rounded-lg max-w-lg text-center">
+            <h2 class="text-3xl font-bold text-gray-900">🎓 Formation</h2>
+            <p class="mt-4 text-gray-700">Détails sur mon parcours académique.</p>
+        </div>
+
+        <!-- Section Expérience -->
+        <div id="experience" class="content-section hidden bg-white shadow-md p-6 rounded-lg max-w-lg text-center">
+            <h2 class="text-3xl font-bold text-gray-900">💼 Expérience</h2>
+            <p class="mt-4 text-gray-700">Mon parcours professionnel.</p>
+        </div>
+
+        <!-- Section Compétences -->
+        <div id="competences" class="content-section hidden bg-white shadow-md p-6 rounded-lg max-w-lg text-center">
+            <h2 class="text-3xl font-bold text-gray-900">🚀 Compétences</h2>
+            <p class="mt-4 text-gray-700">Mes compétences techniques.</p>
+        </div>
+    </main>
+
+</body>
+</html>
