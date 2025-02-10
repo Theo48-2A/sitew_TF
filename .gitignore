@@ -1,7 +1,7 @@
 # Docker
 *.env
 *.env.*
-docker-compose.override.yml
+sitetheo/docker-compose.yml
 sitetheo/Dockerfile.local
 
 # Logs et fichiers temporaires
@@ -36,6 +36,6 @@ media/*
 !media/.gitkeep
 
 
-deploy_docker_compose.sh
+db.sqlite3
 
 
